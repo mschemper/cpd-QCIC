@@ -3,7 +3,7 @@
 ## Status
 - v1 built, unreleased (draft PR). Published privately as claude.ai artifact.
 - Branch: claude/epic-lovelace-osevpd. Draft PR: https://github.com/mschemper/cpd-QCIC/pull/1
-- Published page (private; owner shares via Share menu): https://claude.ai/artifact/W4hncuYMsZQVYchSQreJdU. Republish = copy site/index.html + site/data.json to the scratchpad and publish the same path.
+- Published page (private; owner shares via Share menu): https://claude.ai/artifact/W4hncuYMsZQVYchSQreJdU. Republish = Artifact publish site/index.html with url=<that link>, files {data.json: site/data.json}.
 - Git: v1 committed on the branch; see PR.
 
 ## Data vintage (per column; shown on page)
