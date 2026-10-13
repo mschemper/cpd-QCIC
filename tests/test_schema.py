@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FIXED_KEYS = ["total_pay", "overtime_pay", "overtime_ratio", "complaints_window",
               "sustained_total", "lawsuit_total"]
-FLAG_KEYS = {"total", "ot", "otr", "cmp", "sus", "law"}
+FLAG_KEYS = {"total", "ot", "otr", "cmp", "sus", "law", "frc"}
 _MISSING = object()
 
 

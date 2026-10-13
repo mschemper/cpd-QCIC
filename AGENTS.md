@@ -20,7 +20,7 @@ CPD-QCIC ("Quis custodiet ipsos custodes?"): static web dashboard flagging Chica
 4. docs/CHANGELOG.md -- per-release changes. Old rationale: docs/HISTORY.md.
 
 ## Pipeline
-- Fetch: `python3 -m src.qcic.fetch [steps] [--year N]` -> data/raw/ (gitignored, cached). Steps: payroll roster oversight districts unified lawsuits. `lawsuits` = ~12k throttled CPDP API calls (~20-30 min): run_in_background, resumable.
+- Fetch: `python3 -m src.qcic.fetch [steps] [--year N]` -> data/raw/ (gitignored, cached). Steps: payroll payroll_periods roster oversight districts unified units lawsuits_recent payments council lawsuits. `lawsuits` = ~12k throttled CPDP API calls (~20-30 min): run_in_background, resumable.
 - Build: `python3 -m src.qcic.build` -> site/data.json (committed; public-record derived).
 - Thresholds + pay-element categories: config/qcic.toml only. Never hard-code a threshold.
 - Officer identity: payroll employee_dataset_id is the key; CPDP UID/officer_id joined by name rules in docs/METHOD.md "Matching".

@@ -35,6 +35,7 @@ UNIFIED_MEMBERS = (
     "unified_data/unit-history/unit_reference.csv",
     "unified_data/complaints/complaints-accused.csv",
     "unified_data/complaints/complaints-complaints.csv",
+    "unified_data/TRR/trr_main.csv",
 )
 
 
@@ -90,6 +91,37 @@ def fetch_payroll(year: int, page: int = 100000) -> None:
     write_json(f"payroll_{year}.json", [
         {"employee_dataset_id": k[0], "employee": k[1], "title": k[2], "pay_element": k[3],
          "amount": round(v, 2)} for k, v in sorted(agg.items())])
+
+
+def fetch_payroll_periods(years=(2024, 2025, 2026), page: int = 100000) -> None:
+    """Core-OT-relevant rows by employee and payroll period, for YTD trends. Same raw-CSV approach as payroll."""
+    import tomllib
+    cfg = tomllib.loads((ROOT / "config" / "qcic.toml").read_text())
+    ot_el = set(cfg["pay_elements"]["overtime"])
+    els = ",".join("'" + e.replace("'", "''") + "'" for e in sorted(ot_el))
+    out: dict[str, dict] = {}
+    for year in years:
+        agg: dict[tuple, float] = {}
+        n = 0
+        while True:
+            blob = get(SOCRATA.format(id=PAYROLL).replace(".json", ".csv"), {
+                "$select": "employee_dataset_id,pay_element,payroll_period,amount",
+                "$where": f"department_code='D57' AND payroll_year='{year}' AND pay_element in({els})",
+                "$order": ":id", "$limit": page, "$offset": n}, timeout=600)
+            rows = list(csv.DictReader(io.StringIO(blob.decode("utf-8"))))
+            for r in rows:
+                if r["pay_element"] in ot_el:
+                    k = (r["employee_dataset_id"], int(r["payroll_period"]))
+                    agg[k] = agg.get(k, 0.0) + float(r["amount"] or 0)
+            n += len(rows)
+            print(f"    {PAYROLL} {year}: {n} raw rows", file=sys.stderr)
+            if len(rows) < page:
+                break
+        per_emp: dict[str, dict] = {}
+        for (eid, per), v in agg.items():
+            per_emp.setdefault(eid, {})[str(per)] = round(v, 2)
+        out[str(year)] = per_emp
+    write_json("payroll_periods.json", out)
 
 
 def fetch_roster() -> None:
@@ -167,7 +199,8 @@ def fetch_lawsuits(workers: int = 4) -> None:
 
 OUTPUTS = {"payroll": "payroll_{year}.json", "roster": "roster.json",
            "oversight": "bia_by_beat.json", "districts": "districts.geojson",
-           "unified": "cpdp/complaints-complaints.csv", "units": "units_recent.json",
+           "unified": "cpdp/complaints-complaints.csv", "units": "units_recent.json", "payroll_periods": "payroll_periods.json",
+           "payments": "payments_dol.json", "council": "council_settlements.json",
            "lawsuits_recent": "lawsuits_recent.json"}
 
 def fetch_units_recent() -> None:
@@ -180,8 +213,19 @@ def fetch_lawsuits_recent() -> None:
     lawsuits_recent.fetch()
 
 
+def fetch_payments() -> None:
+    from .sources import payments_dol
+    payments_dol.fetch()
+
+
+def fetch_council() -> None:
+    from .sources import council
+    council.fetch()
+
+
 STEPS = {"payroll": None, "roster": fetch_roster, "oversight": fetch_oversight,
          "districts": fetch_districts, "unified": fetch_unified, "units": fetch_units_recent,
+         "payroll_periods": fetch_payroll_periods, "payments": fetch_payments, "council": fetch_council,
          "lawsuits_recent": fetch_lawsuits_recent, "lawsuits": fetch_lawsuits}
 
 

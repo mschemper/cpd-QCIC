@@ -30,5 +30,17 @@
 ## Units 2023-11 (FOIA roster)
 - invinst roster_1985-2023_2023-11_p891976 via raw.githubusercontent.com: src/qcic/sources/units_recent.py -> data/raw/units_recent.json. Newest officer-level unit data found; no 2024+ source exists. Research: docs/research/LOCATION.md.
 
+## Use of force (TRR)
+- unified_data.zip TRR/trr_main.csv (extracted by `unified`): 98,864 rows, 2004-01 to 2023-09-15. UID written as float ("129702.0") -> strip ".0". One row per officer per incident; count distinct trr_id. Newer TRR (CPD dashboard, 2025) not reachable from cloud: docs/research/SOURCES.md.
+
+## Payroll periods (OT trend)
+- dawh-m56b raw CSV filtered to core-OT pay elements, by employee + payroll_period, 2024-2026 (`payroll_periods`, ~1.5 min). OT posts in even periods. 2026 partial (refresh 2026-05-18, through period 6).
+
+## Settlement payments (DOL)
+- Judgment & Settlement Payment Requests xlsx, 2024-2026 (`payments`, src/qcic/sources/payments_dol.py, stdlib xlsx parse). CITY DEPARTMENT = POLICE. Monthly. Case-level, no officer names; join on case key (src/qcic/sources/casekey.py) to DOL litigation report cases. Undated rows = separate personnel table: dropped. Single rows > config payments.verify_over held out.
+
+## City Council approvals (eLMS)
+- api.chicityclerkelms.chicago.gov /matter?search=&top=100&skip= (filters ignored by API); category LAWSUITS/SETTLEMENTS, 2024+ (`council`, src/qcic/sources/council.py). Titles carry case no., no amounts. Police = title signal OR case key in DOL police records. Raw titles include plaintiff names: data/raw only.
+
 ## Map
 - 24zt-jpfn Boundaries - Police Districts (current) GeoJSON (fthy-xz3r's .geojson is empty). Projected to 600x800 SVG in build.py.

@@ -1,7 +1,8 @@
 # BACKLOG.md -- open requests and bugs. Plan from here.
 
 ## Data
-- Newer sources ranked: docs/research/SOURCES.md. Do first: DOL J&S payment xlsx 2024-2026 (join case_no -> officers); use-of-force metric from TRR already in unified_data.zip; 2026 YTD OT trend.
+- Newer sources ranked: docs/research/SOURCES.md. Done v1.1: DOL payments, TRR use of force, 2026 OT trend, Council approvals. Next: 2023 DOL xlsx (item 3).
+- Verify DOL payment line 22 L 3091 ($750M vs press $7.5M); compound case numbers ('24-1674/ 17CV417') keep first key only.
 - Needs Mark's PC / requests: OIG complaint dashboards CSV, CPD TRR 2025 download columns, ILETSB bulk list, IDOT stop data, FOIA current roster with unit + CRs 2024+.
 - Lawsuits 2019-2021: parse rotated DOL report layouts (src/qcic/sources/lawsuits_recent.py). Ref: docs/research/LAWSUITS.md.
 - Units after 2023-11: none public; FOIA a current roster with unit. Ref: docs/research/LOCATION.md.

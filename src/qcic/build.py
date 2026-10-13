@@ -14,8 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "site" / "data.json"
-METRICS = ["total", "ot", "cmp", "law"]
-LABELS = {"total": "Total pay", "ot": "Overtime pay", "cmp": "Complaints (5 yr)",
+METRICS = ["total", "ot", "cmp", "law", "frc"]
+LABELS = {"frc": "Use-of-force reports (3 yr)", "total": "Total pay", "ot": "Overtime pay", "cmp": "Complaints (5 yr)",
           "law": "Lawsuit payouts (City-paid, cases naming officer)"}
 SUFFIXES = {"JR", "SR", "II", "III", "IV", "V"}
 SOURCES = [
@@ -40,6 +40,11 @@ SOURCES = [
     {"name": "City of Chicago Dept. of Law, CPD Annual Litigation Reports (consent decree para. 548)",
      "url": "https://www.chicago.gov/city/en/depts/dol/supp_info/CPDAnnLitReports.html",
      "note": "Settled/litigated cases 2022-2025 with named officer defendants and payouts."},
+    {"name": "City of Chicago Dept. of Law, Judgment and Settlement Payment Requests",
+     "url": "https://www.chicago.gov/city/en/depts/dol/supp_info/judgment-and-settlement-payments-requests.html",
+     "note": "Monthly payments by case, POLICE department rows; plaintiff names not shown."},
+    {"name": "Chicago City Clerk eLMS (City Council)", "url": "https://chicityclerkelms.chicago.gov",
+     "note": "Council approvals of police lawsuit settlements 2024 onward."},
     {"name": "Boundaries - Police Districts (current)",
      "url": "https://data.cityofchicago.org/d/24zt-jpfn", "note": "District map."},
 ]
@@ -179,6 +184,123 @@ def build_complaints(window: int) -> tuple[dict, dict, dict, str]:
             f"{start}-{last_year} window (data {first_year}-{last_year})")
 
 
+def build_force(window: int) -> tuple[dict, dict, dict, dict, str]:
+    """Per UID: distinct TRRs in window, career, firearm and taser TRRs in window. Dates m/d/yy."""
+    path = RAW / "cpdp" / "trr_main.csv"
+    if not path.exists():
+        return {}, {}, {}, {}, ""
+    rows = []
+    for r in read_csv("trr_main.csv"):
+        parts = (r.get("trr_date") or "").split("/")
+        uid = (r["UID"] or "").split(".")[0]          # TRR file writes UIDs as floats ("129702.0")
+        if uid and len(parts) == 3 and parts[2][:2].isdigit():
+            yy = int(parts[2][:2])
+            rows.append((uid, r["trr_id"], 2000 + yy if yy < 50 else 1900 + yy,
+                         r.get("firearm_used") == "1", r.get("taser") == "1"))
+    last = max(y for _, _, y, _, _ in rows)
+    start = last - window + 1
+    win, all_, gun, taser = defaultdict(set), defaultdict(set), defaultdict(set), defaultdict(set)
+    for uid, tid, y, g, t in rows:
+        all_[uid].add(tid)
+        if y >= start:
+            win[uid].add(tid)
+            if g:
+                gun[uid].add(tid)
+            if t:
+                taser[uid].add(tid)
+    n = lambda d: {k: len(v) for k, v in d.items()}
+    return n(win), n(all_), n(gun), n(taser), f"{start}-{last} window (data {min(y for _, _, y, _, _ in rows)}-{last}, to Sep {last})"
+
+
+def build_ot_trend() -> tuple[dict, dict]:
+    """meta.ot_trend + per-employee YTD core OT through the latest complete period of the newest year."""
+    path = RAW / "payroll_periods.json"
+    if not path.exists():
+        return {}, {}
+    data = json.loads(path.read_text())
+    years = sorted(data)
+    newest = years[-1]
+    through = max((int(p) for e in data[newest].values() for p in e), default=0)
+    trend, ytd = {"through_period": through, "years": {}}, defaultdict(dict)
+    for y in years:
+        tot = [0.0] * 24
+        for eid, per in data[y].items():
+            s_ = 0.0
+            for p, v in per.items():
+                tot[int(p) - 1] += v
+                if int(p) <= through:
+                    s_ += v
+            ytd[eid][y] = round(s_, 2)
+        n = through if y == newest else 24
+        trend["years"][y] = [round(v, 2) for v in tot[:n]]
+    return trend, ytd
+
+
+def build_payments(case_officers: dict[str, int], verify_over: float = 1e8) -> tuple[dict, dict]:
+    """meta.payments summary + {case key: [paid rows]}. No payee names leave this function."""
+    path = RAW / "payments_dol.json"
+    if not path.exists():
+        return {}, {}
+    from .sources.casekey import case_key
+    raw = json.loads(path.read_text())
+    rows = [r for r in raw["rows"] if r.get("date")]          # undated rows = separate personnel table
+    unverified = [r for r in rows if float(r.get("amount") or 0) + float(r.get("fees") or 0) > verify_over]
+    rows = [r for r in rows if r not in unverified]
+    by_year, by_month, by_cause, paid = defaultdict(lambda: {"n": 0, "amount": 0.0, "fees": 0.0}), Counter(), {}, defaultdict(list)
+    for r in rows:
+        key = r.get("key") or case_key(r.get("case_no"))
+        amt, fees = float(r.get("amount") or 0), float(r.get("fees") or 0)
+        y = str(r.get("year") or (r.get("date") or "")[:4])
+        by_year[y]["n"] += 1
+        by_year[y]["amount"] += amt
+        by_year[y]["fees"] += fees
+        by_month[(r.get("date") or "")[:7]] += amt + fees
+        c = (r.get("cause") or "UNKNOWN").strip().upper()
+        n_, a_ = by_cause.get(c, (0, 0.0))
+        by_cause[c] = (n_ + 1, a_ + amt + fees)
+        if key:
+            paid[key].append({"date": r.get("date"), "amount": round(amt, 2), "fees": round(fees, 2)})
+    top = sorted(rows, key=lambda r: -(float(r.get("amount") or 0) + float(r.get("fees") or 0)))[:40]
+    summary = {
+        "asof": raw.get("asof"),
+        "unverified": [{"case_no": r.get("case_no"), "key": r.get("key"), "date": r.get("date"),
+                        "amount": round(float(r.get("amount") or 0), 2), "cause": r.get("cause"),
+                        "note": f"single row over ${verify_over:,.0f}; excluded from totals pending verification"}
+                       for r in unverified],
+        "by_year": {y: {"n": v["n"], "amount": round(v["amount"], 2), "fees": round(v["fees"], 2)}
+                    for y, v in sorted(by_year.items()) if y},
+        "by_month": [[m, round(v, 2)] for m, v in sorted(by_month.items()) if m],
+        "by_cause": [[c, n_, round(a_, 2)] for c, (n_, a_) in sorted(by_cause.items(), key=lambda kv: -kv[1][1])],
+        "top": [{"case_no": r.get("case_no"), "key": r.get("key"), "date": r.get("date"),
+                 "amount": round(float(r.get("amount") or 0), 2), "fees": round(float(r.get("fees") or 0), 2),
+                 "cause": r.get("cause"), "disposition": r.get("disposition"),
+                 "officers_linked": case_officers.get(r.get("key"), 0)} for r in top],
+    }
+    return summary, paid
+
+
+def build_council(case_officers: dict[str, int], police_keys: set[str], pay_by_key: dict) -> tuple[list, dict]:
+    """Council-approved settlements: police if title signals police OR case key appears in DOL police records."""
+    path = RAW / "council_settlements.json"
+    if not path.exists():
+        return [], {}
+    out, by_key = [], {}
+    for m in json.loads(path.read_text()).get("matters", []):
+        keys = m.get("case_keys") or []
+        if not (m.get("police_signal") or any(k in police_keys for k in keys)):
+            continue
+        paid = sum(x["amount"] + x["fees"] for k in keys for x in pay_by_key.get(k, []))
+        item = {"date": m.get("date"), "date_kind": m.get("date_kind"), "key": keys[0] if keys else None,
+                "case_no": keys[0] if keys else None, "amount": m.get("amount"),
+                "paid": round(paid, 2) if paid else None, "url": m.get("url"),
+                "officers_linked": max((case_officers.get(k, 0) for k in keys), default=0)}
+        out.append(item)
+        for k in keys:
+            by_key.setdefault(k, {"date": m.get("date"), "url": m.get("url")})
+    out.sort(key=lambda x: x["date"] or "", reverse=True)
+    return out, by_key
+
+
 def build_units() -> tuple[dict, dict, str]:
     ref = {}
     for r in read_csv("unit_reference.csv"):
@@ -282,6 +404,7 @@ def defendant_key(name: str) -> tuple[str, str] | None:
 
 
 def link_recent_lawsuits(officers: list[dict]) -> dict[str, list[dict]]:
+    from .sources.casekey import case_key
     """Payroll id -> cases. Badge (paired with a matching last name) first, else unique (last, first). Never guess."""
     path = RAW / "lawsuits_recent.json"
     if not path.exists():
@@ -314,11 +437,13 @@ def link_recent_lawsuits(officers: list[dict]) -> dict[str, list[dict]]:
             if hit is None and k and len(by_name.get(k, [])) == 1:
                 hit = by_name[k][0]
             if hit and all(x["case_no"] != c["case_no"] for x in out[hit["id"]]):
-                out[hit["id"]].append({"case_no": c["case_no"], "year": c.get("year"),
+                out[hit["id"]].append({"case_no": c["case_no"], "key": case_key(c["case_no"]), "year": c.get("year"),
                                        "payout": round(pay, 2), "category": c.get("category"),
                                        "kind": c.get("kind"), "url": c.get("source_url")})
     return out
 
+
+from .sources.casekey import case_key  # noqa: E402
 
 # ---------- main ----------
 def is_sworn(title: str, cfg: dict) -> bool:
@@ -332,6 +457,8 @@ def main() -> None:
     roster = {norm(r["name"]) for r in load_json("roster.json")}
     profiles = [r for r in read_csv("final-profiles.csv") if r["current_status"] == "1"]
     cmp_all, cmp_win, sus, cmp_vintage = build_complaints(st["complaint_window_years"])
+    frc_win, frc_all, frc_gun, frc_taser, frc_vintage = build_force(st.get("trr_window_years", 3))
+    ot_trend, ot_ytd = build_ot_trend()
     units, unit_ref, units_to = build_units()
     summ_path = RAW / "cpdp_summaries.json"
     summaries = json.loads(summ_path.read_text()) if summ_path.exists() else {}
@@ -364,7 +491,12 @@ def main() -> None:
              "sus": sus.get(uid, 0) if p else None, "law": law, "law_n": None,
              "unit": unit.zfill(3) if unit else None,
              "unit_desc": udesc or (f"Unit {unit}" if unit else None), "unit_asof": uasof,
-             "dist": district_of(unit), "badge": badge}
+             "dist": district_of(unit), "badge": badge,
+             "frc": frc_win.get(uid, 0) if p and frc_all else None,
+             "frc_all": frc_all.get(uid, 0) if p and frc_all else None,
+             "frc_gun": frc_gun.get(uid, 0) if p and frc_all else None,
+             "frc_taser": frc_taser.get(uid, 0) if p and frc_all else None,
+             "ot_ytd": ot_ytd.get(pid, {})}
         officers.append(o)
 
     recent_cases = link_recent_lawsuits(officers)
@@ -377,6 +509,17 @@ def main() -> None:
             o["law"] = round((o["law"] or 0) + rec, 2)
         o["law_n"] = len(cases) if recent_cases else None
         o["law_cases"] = sorted(cases, key=lambda x: -x["payout"])[:12]
+
+    case_officers = Counter(c["key"] for v in recent_cases.values() for c in v if c.get("key"))
+    payments, paid_by_key = build_payments(case_officers, cfg.get("payments", {}).get("verify_over", 1e8))
+    police_keys = set(paid_by_key) | set(case_officers) | {
+        case_key(c.get("case_no")) for c in (json.loads((RAW / "lawsuits_recent.json").read_text())
+                                             if (RAW / "lawsuits_recent.json").exists() else [])}
+    council, council_by_key = build_council(case_officers, police_keys, paid_by_key)
+    for o in officers:
+        for c in o["law_cases"]:
+            c["paid"] = paid_by_key.get(c.get("key"), [])
+            c["council"] = council_by_key.get(c.get("key"))
 
     # full-year guard: pay metrics scored only for members with a substantial base salary
     tb = defaultdict(list)
@@ -444,6 +587,8 @@ def main() -> None:
                 ff.append("sus")
             if o["law"] is not None and o["law"] >= fx["lawsuit_total"]:
                 ff.append("law")
+            if o["frc"] is not None and o["frc"] >= fx.get("force_window", 10**9):
+                ff.append("frc")
             o["ff"] = ff
 
     districts = build_districts(officers)
@@ -455,7 +600,8 @@ def main() -> None:
             "vintage": {"payroll": str(cfg["payroll_year"]), "complaints": cmp_vintage,
                         "units": "roster 2023-11 (FOIA p891976), else unit history to " + units_to,
                         "lawsuits": "CPDP cases ~2011-2019 + City DOL CPD litigation reports 2022-2025 (2020-2021 not yet parsed)",
-                        "copa_bia": "live City feeds"},
+                        "copa_bia": "live City feeds", "frc": frc_vintage,
+                        "payments": f"Law Dept. payment requests through {payments.get('asof')}" if payments else None},
             "counts": {"employees": len(officers), "sworn": len(sworn), "matched": len(matches),
                        "with_lawsuit_data": sum(1 for o in officers if o["law"] is not None),
                        "dol_cases_linked": len({c["case_no"] for v in recent_cases.values() for c in v}),
@@ -469,6 +615,7 @@ def main() -> None:
                        "part_year": sum(1 for o in officers if not o["fy"])},
             "thresholds": {**st, "fixed": fx},
             "sources": SOURCES,
+            "ot_trend": ot_trend, "payments": payments, "council": council,
         },
         "metrics": METRICS, "metric_labels": LABELS, "peers": peers,
         "officers": officers, "districts": districts,

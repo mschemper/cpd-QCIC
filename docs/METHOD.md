@@ -5,6 +5,12 @@
 - cmp = distinct complaints (CRs) in the last complaint_window_years of CPDP data; cmp_all = career; sus = sustained findings (final_finding SU), career.
 - law = law_cpdp (CPDP total_lawsuit_settlements, cases ~2011-2019) + law_dol (DOL CPD litigation reports 2022-2025). Paid by the City; full case payout credited to every named officer. 2020-2021 gap. Unmatched members: law = law_dol only.
 
+- frc = distinct use-of-force reports (TRR) in the last trr_window_years of TRR data (2021-2023); frc_all career; frc_gun / frc_taser in window. A TRR is filed whenever force is used: not a misconduct finding.
+- ot_ytd = core OT, payroll periods 1..through_period of the newest payroll year, for each year (comparable YTD).
+
+## Case keys
+- src/qcic/sources/casekey.py: '2021 C 06001' / '21-cv-6001' -> '21-6001'; state 'L' cases keep the letter. Unparseable -> None. Payments and Council rows join to DOL litigation-report cases (and thus officers) only by key; never by plaintiff or payee name.
+
 ## Linking DOL cases -> payroll (sworn)
 - Cases with payout > 0; dedupe (case_no, kind).
 - Defendant name: strip parentheticals, "#NNNN", ranks, suffixes, middle initials -> (last squashed, first).
@@ -33,12 +39,12 @@
 
 ## Statistical flags (fs)
 - Robust z = (t(x) - median) / (MAD / 0.6745); t = log(1+x) for log_metrics (total, ot, law), else identity. MAD = 0 -> scale = 1.253314 * mean absolute deviation (Iglewicz-Hoaglin); both 0 -> z = 0.
-- positive_only metrics (law): median/scale from members with x > 0; x = 0 -> z null.
+- positive_only metrics (law, frc): median/scale from members with x > 0; x = 0 -> z null.
 - Flag when z >= z_flag (3.5). High side only.
 - Percentile = share of scored peers <= x (raw scale).
 
 ## Fixed-limit flags (ff)
-- total >= total_pay; ot >= overtime_pay; otr >= overtime_ratio; cmp >= complaints_window; sus >= sustained_total; law >= lawsuit_total.
+- total >= total_pay; ot >= overtime_pay; otr >= overtime_ratio; cmp >= complaints_window; sus >= sustained_total; law >= lawsuit_total; frc >= force_window.
 
 ## Wording
 - Page and docs say "outlier" / "flagged for review". A complaint is an allegation; not sustained != innocent, sustained != criminal. Lawsuit payouts are settlements/judgments, usually without admission of liability.
