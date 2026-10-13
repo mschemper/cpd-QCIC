@@ -1,9 +1,9 @@
 # STATE.md -- what is true now. Update with every change.
 
 ## Status
-- v1 in progress, unreleased. Not published.
-- Branch: claude/epic-lovelace-osevpd. Draft PR to main: pending.
-- Published page URL: TBD.
+- v1 built, unreleased (draft PR). Published privately as claude.ai artifact.
+- Branch: claude/epic-lovelace-osevpd. Draft PR: https://github.com/mschemper/cpd-QCIC/pull/1
+- Published page (private; owner shares via Share menu): https://claude.ai/artifact/W4hncuYMsZQVYchSQreJdU. Republish = copy site/index.html + site/data.json to the scratchpad and publish the same path.
 - Git: v1 committed on the branch; see PR.
 
 ## Data vintage (per column; shown on page)
