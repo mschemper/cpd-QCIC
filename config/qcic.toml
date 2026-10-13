@@ -1,0 +1,42 @@
+# CPD-QCIC thresholds and categories. Method: docs/METHOD.md.
+
+payroll_year = 2025
+
+[stat]
+# Robust z = 0.6745 * (x - median) / MAD within peer group (job title).
+z_flag = 3.5            # Iglewicz-Hoaglin outlier cut
+min_peer_group = 30     # smaller titles fall back to all sworn members
+complaint_window_years = 5   # complaints counted in the last N years of CPDP data
+full_year_base_share = 0.5   # pay metrics scored only if base >= share x peer-title median base (excludes retirees, new hires, leave)
+positive_only = ["law", "frc"]   # zero-inflated metrics: z computed among members with value > 0
+log_metrics = ["total", "ot", "law"]   # right-skewed money: robust z on log(1 + x)
+trr_window_years = 3         # use-of-force reports counted in the last N years of TRR data
+
+[fixed]
+# Plain-language limits, shown separately from statistical flags. Edit freely.
+total_pay = 250000          # USD, payroll year (~top 2% of sworn, 2025)
+overtime_pay = 100000       # USD, payroll year (~top 2%)
+overtime_ratio = 1.0         # overtime >= base salary
+complaints_window = 10      # complaints in window
+sustained_total = 3         # sustained findings, career
+lawsuit_total = 250000      # USD, CPDP + DOL lawsuit payouts linked to officer, career
+force_window = 10           # use-of-force reports in 3-yr TRR window (~top 1% of matched sworn)
+
+[payments]
+verify_over = 100000000     # single DOL payment row above this: listed as unverified, excluded from totals (e.g. $750M row, case 22 L 3091; press reports $7.5M)
+
+[pay_elements]
+# Payroll pay_element -> category (base, ot, det, bb). Anything unlisted -> "other". Negative (DOCK, SUSPENSION) stay in total.
+base = ["REGULAR SALARY", "REGULAR TIME", "TIME ENTRY WAGES", "MISC EARNINGS SALARY"]
+overtime = ["OT 1_0", "OT FLSA", "DEC OT FLSA", "SUPERVISORS QUARTERLY OT", "CANINE OVERTIME", "COURT NO PEN"]
+# Outside-agency special-employment details (CTA, CHA, Parks): shown, counted in total, not in overtime metric.
+details = ["SPCL EMP CTA", "SPCL EMP CHA", "PARKS"]
+# Cash-out of comp time banked in earlier years: shown, counted in total, not in overtime metric.
+buybacks = ["COMP TIME SWN BB", "COMP TIME 200 HR BB", "COMP TIME BUY BACK", "DEC COMP SWN BB", "DEC COMP TIME BB"]
+
+[sworn]
+# Title substrings that mark sworn members (peer-fallback pool + misconduct scope).
+titles = ["POLICE OFFICER", "SERGEANT", "LIEUTENANT", "CAPTAIN", "COMMANDER", "DETECTIVE",
+          "CHIEF", "SUPERINTENDENT", "DEPUTY", "FIELD TRAINING", "EXPLOSIVES", "CANINE",
+          "MARINE", "PILOT", "EVIDENCE TECHNICIAN", "GANG SPECIALIST", "TRAFFIC SPECIALIST",
+          "HELICOPTER", "MOUNTED", "LEGAL OFFICER", "FORENSIC INVESTIGATOR"]
