@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPD-QCIC</title>
+<meta name="description" content="Statistical outliers among Chicago Police Department members on pay, overtime, complaints and lawsuit payouts. For review, not findings of wrongdoing.">
+<style>
+/* ET Book from tufte-css@1.8.0 (exact version) via jsDelivr; Georgia is the fallback. */
+@font-face{font-family:"et-book";src:url("https://cdn.jsdelivr.net/npm/tufte-css@1.8.0/et-book/et-book-roman-line-figures/et-book-roman-line-figures.woff") format("woff");font-weight:normal;font-style:normal;font-display:swap}
+@font-face{font-family:"et-book";src:url("https://cdn.jsdelivr.net/npm/tufte-css@1.8.0/et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.woff") format("woff");font-weight:normal;font-style:italic;font-display:swap}
+@font-face{font-family:"et-book";src:url("https://cdn.jsdelivr.net/npm/tufte-css@1.8.0/et-book/et-book-bold-line-figures/et-book-bold-line-figures.woff") format("woff");font-weight:bold;font-style:normal;font-display:swap}
+
+:root{
+  --paper:#fffff8;
+  --ink:#111111;
+  --grey:#6b6b6b;
+  --rule:#d9d6c7;
+  --accent:#a00000;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme=light]){
+    --paper:#151513;
+    --ink:#eae7da;
+    --grey:#9a978a;
+    --rule:#3a3934;
+    --accent:#ff6b5e;
+  }
+}
+:root[data-theme=dark]{
+  --paper:#151513;
+  --ink:#eae7da;
+  --grey:#9a978a;
+  --rule:#3a3934;
+  --accent:#ff6b5e;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"et-book",Georgia,"Times New Roman",serif;font-size:17px;line-height:1.45;font-variant-numeric:tabular-nums lining-nums}
+.page{max-width:1120px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:2.4rem;font-weight:normal;margin:0;letter-spacing:.02em;line-height:1.1}
+h2{font-size:1.35rem;font-weight:normal;font-style:italic;margin:2.2rem 0 .5rem;line-height:1.2}
+h3{font-size:1rem;font-weight:bold;margin:0}
+p{margin:.4rem 0}
+a{color:var(--ink);text-decoration-color:var(--grey);text-underline-offset:2px}
+a:hover{text-decoration-color:var(--accent)}
+.sub{font-style:italic;font-size:1.2rem;color:var(--grey);margin:.1rem 0 .6rem}
+.grey{color:var(--grey)}
+.small{font-size:14px}
+.caveat{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:.4rem 0;margin:.8rem 0}
+.mark-s,.mark-f{color:var(--accent);font-style:normal}
+.dash{color:var(--grey)}
+
+/* lookup */
+.lookup label{display:block;font-weight:bold;letter-spacing:.06em;font-size:14px;text-transform:uppercase;margin-bottom:.2rem}
+input[type=search],input[type=text],select{font:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--grey);border-radius:0;padding:.35rem .5rem;max-width:100%}
+.lookup input{width:100%;font-size:20px;padding:.55rem .65rem;border-width:2px;border-color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;text-align:left}
+#results{margin-top:.4rem}
+#results .row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) 5em minmax(0,1.3fr);gap:.2rem .8rem;width:100%;padding:.3rem .2rem;border-bottom:1px solid var(--rule);font-size:15px;align-items:baseline}
+#results .row:hover,#results .row:focus-visible{background:none;text-decoration:underline;text-decoration-color:var(--accent)}
+.nres{font-size:14px;color:var(--grey);margin-top:.3rem}
+@media (max-width:640px){
+  #results .row{grid-template-columns:1fr 1fr}
+}
+
+/* drill-down */
+#drill{margin-top:1.2rem;border-top:2px solid var(--ink);padding-top:.5rem}
+#drill[hidden]{display:none}
+.dhead{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}
+.dhead h2{margin:.2rem 0 0;font-style:normal;font-weight:bold;font-size:1.5rem}
+.close{border:1px solid var(--grey);padding:.2rem .6rem;font-size:14px}
+.dm{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.2fr) minmax(220px,1.6fr);gap:.4rem 1.2rem;padding:.7rem 0;border-bottom:1px solid var(--rule);align-items:start}
+.dm .val{font-size:1.5rem;line-height:1.1}
+.dm .st{font-size:14px;margin:0;line-height:1.5}
+.dm .st span{display:inline-block;min-width:6.4em;color:var(--grey)}
+.dm .st .mark-s,.dm .st .mark-f{display:inline;min-width:0;color:var(--accent)}
+@media (max-width:760px){.dm{grid-template-columns:1fr}}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem 2rem;margin-top:1rem}
+dl{margin:.3rem 0 0;font-size:15px}
+dl div{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--rule);padding:.15rem 0}
+dt{color:var(--grey)}
+dd{margin:0;text-align:right}
+
+/* strips */
+.strip{margin:.2rem 0 .6rem}
+.strip .sh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 1rem;font-size:15px}
+svg{display:block;max-width:100%}
+svg text{fill:var(--grey);font-family:inherit;font-size:12px}
+svg text.lab{fill:var(--ink)}
+svg .tk{stroke:var(--grey);stroke-opacity:.16;stroke-width:1;fill:none}
+svg .pm{stroke:var(--ink);stroke-width:2;fill:none}
+svg .ax{stroke:var(--ink);stroke-width:1;fill:none}
+svg .dotf{fill:var(--accent);fill-opacity:.6}
+svg .dotr{fill:none;stroke:var(--accent);stroke-width:1.3}
+svg .me{fill:var(--ink)}
+svg .dist{stroke:var(--paper);stroke-width:1;cursor:pointer}
+svg .dist:hover{stroke:var(--accent);stroke-width:2}
+svg .dl{fill:var(--ink);text-anchor:middle;dominant-baseline:central;font-weight:bold;paint-order:stroke;stroke:var(--paper);stroke-width:3;stroke-linejoin:round;pointer-events:none}
+svg .sp{stroke:var(--ink);stroke-width:1.2;fill:none}
+svg .spd{fill:var(--ink)}
+
+/* tables */
+.scroll{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums lining-nums}
+th,td{padding:.28rem .5rem;border-bottom:1px solid var(--rule);vertical-align:baseline;white-space:nowrap}
+thead th{border-bottom:1px solid var(--ink);font-weight:normal;vertical-align:bottom;text-align:left}
+th button{font-size:13px;font-weight:bold;text-align:inherit;white-space:nowrap}
+th .v{display:block;font-size:12px;color:var(--grey);font-weight:normal}
+td.n,th.n{text-align:right}
+th.n button{text-align:right}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover td{text-decoration:underline;text-decoration-color:var(--rule)}
+tr.grp td,tr.grp th{border-top:1px solid var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;margin:.5rem 0;font-size:14px;align-items:end}
+.filters label{max-width:100%;min-width:0;display:flex;flex-direction:column;gap:.1rem;color:var(--grey)}
+.cnt{font-size:14px;color:var(--grey);margin:.3rem 0}
+
+/* map */
+.mapwrap{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:1rem 2rem;align-items:start}
+@media (max-width:900px){.mapwrap{grid-template-columns:minmax(0,1fr)}}
+
+/* notes */
+.notes{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:1rem 2.5rem;margin-top:2.4rem;border-top:1px solid var(--rule);padding-top:.8rem}
+.notes ol,.notes ul{padding-left:1.2rem;margin:.3rem 0}
+.notes li{margin-bottom:.35rem}
+.side{font-size:14px;line-height:1.35}
+.side h3{font-size:14px;margin-bottom:.3rem}
+@media (max-width:900px){.notes{grid-template-columns:1fr}}
+@media (max-width:480px){h1{font-size:2rem}body{font-size:16px}}
+#err{color:var(--accent);padding:1rem 0}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>CPD-QCIC</h1>
+  <p class="sub">Quis custodiet ipsos custodes?</p>
+  <p>Which Chicago Police Department members stand out from their peers on total pay, overtime, complaints and lawsuit payouts &mdash; and where in the city do they work?</p>
+  <p class="small grey" id="vintage">Loading data&hellip;</p>
+  <p class="caveat"><b>Statistical outliers for review, not findings of wrongdoing.</b> A complaint is an allegation; a lawsuit payout is usually a settlement without admission of liability.</p>
+</header>
+<div id="err" hidden></div>
+
+<section class="lookup" aria-label="Officer lookup">
+  <label for="q">Officer lookup</label>
+  <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Last name or badge number" aria-controls="results">
+  <div class="nres" id="nres">Searches all members, flagged or not. Last-name prefix, or exact badge number.</div>
+  <div id="results" role="list"></div>
+</section>
+
+<section id="drill" hidden aria-live="polite"></section>
+
+<section>
+  <h2>In brief</h2>
+  <p id="headline" style="font-size:1.15rem"></p>
+</section>
+
+<section>
+  <h2>Where members sit among their peers</h2>
+  <p class="small grey">One row per measure; every member is a faint tick, flagged members are red dots (filled: statistical outlier; ring: fixed limit only). Black ticks under the axis are peer-group medians (one per title group). Axes are range-framed: minimum, median, 99th percentile, maximum.</p>
+  <div id="strips"></div>
+</section>
+
+<section>
+  <h2>Flagged members</h2>
+  <div class="filters">
+    <label>Measure<select id="f-metric"></select></label>
+    <label>Flag type<select id="f-type">
+      <option value="">any</option>
+      <option value="s">statistical &#9679;</option>
+      <option value="f">fixed limit &#9675;</option>
+      <option value="b">both</option>
+    </select></label>
+    <label>District<select id="f-dist"></select></label>
+    <label>Title<select id="f-title"></select></label>
+    <button id="f-reset" class="close">Reset</button>
+  </div>
+  <p class="cnt" id="tcount"></p>
+  <div class="scroll"><table id="ftable"></table></div>
+  <p class="small grey">&#9679; statistical outlier for review (within title peer group); &#9675; exceeds a fixed limit (outlier for review). Total and overtime pay are scored only for full-year members; part-year pay shows an en dash. Percentile = share of the peer group at or below this value. Click a row for the drill-down.</p>
+</section>
+
+<section>
+  <h2>Districts</h2>
+  <div class="mapwrap">
+    <div>
+      <div id="map"></div>
+      <p class="small grey">Shading: share of members flagged (light to dark). Number: flagged members. Click a district to filter the table above.</p>
+    </div>
+    <div class="scroll"><table id="dtable"></table></div>
+  </div>
+</section>
+
+<section class="notes">
+  <div>
+    <h2 style="margin-top:0">Method</h2>
+    <ul id="method"></ul>
+  </div>
+  <aside class="side">
+    <h3>Sources</h3>
+    <ol id="sources"></ol>
+  </aside>
+</section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+var T0=performance.now();
+var D=null, O=[], byId=new Map(), byBadge=new Map(), M=[], MI={};
+var LOGM={total:1,ot:1,law:1};
+var VINT={total:"payroll",ot:"payroll",cmp:"complaints",law:"lawsuits"};
+var FIXKEY={total:"total_pay",ot:"overtime_pay",otr:"overtime_ratio",cmp:"complaints_window",sus:"sustained_total",law:"lawsuit_total"};
+var FIXLAB={total:"Total pay",ot:"Overtime pay",otr:"Overtime / base",cmp:"Complaints",sus:"Sustained finding (allegation)",law:"Lawsuit payouts"};
+var st={sortKey:"flags",sortDir:-1,fm:"",ft:"",fd:"",ftitle:""};
+var $=function(id){return document.getElementById(id)};
+var NF=new Intl.NumberFormat("en-US",{maximumFractionDigits:0});
+var DASH="–";
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function usd(v){return v==null?DASH:(v<0?"−$":"$")+NF.format(Math.abs(v))}
+function usdC(v){var a=Math.abs(v),s=v<0?"−":"";if(a>=1e9)return s+"$"+(a/1e9).toFixed(2)+"B";if(a>=1e6)return s+"$"+(a/1e6).toFixed(a>=1e7?0:1)+"M";if(a>=1e3)return s+"$"+(a/1e3).toFixed(a>=1e5?0:1).replace(/\.0$/,"")+"k";return s+"$"+Math.round(a)}
+function fmtM(m,v){if(v==null)return DASH;return LOGM[m]?usd(v):NF.format(v)}
+function fmtC(m,v){if(v==null)return DASH;return LOGM[m]?usdC(v):NF.format(v)}
+function n0(v){return NF.format(v)}
+function pct1(v){return v==null?DASH:v.toFixed(1)}
+function nullTitle(o){return o.cpdp==null?"not matched to CPDP":"no data loaded"}
+function nd(o,m){if(m&&o.fy===false&&(m==="total"||m==="ot"))return '<span class="dash" title="part-year pay: not scored on pay">'+DASH+'</span>';return '<span class="dash" title="'+nullTitle(o)+'">'+DASH+'</span>'}
+function lastName(n){return n.split(",")[0].replace(/\s+/g," ").trim()}
+function normName(n){return n.replace(/\s+/g," ").trim()}
+function isFlagged(o){return o.fs.length>0||o.ff.length>0}
+function hasS(o,m){return o.fs.indexOf(m)>=0}
+function hasF(o,m){return o.ff.indexOf(m)>=0}
+function scored(o,m){return o[m]!=null&&!((m==="total"||m==="ot")&&o.fy===false)}
+function tx(m,v){return LOGM[m]?Math.log10(1+Math.max(v,0)):v}
+
+/* ---------- load ---------- */
+fetch("./data.json").then(function(r){if(!r.ok)throw new Error("data.json: HTTP "+r.status);return r.json()}).then(init).catch(function(e){
+  var el=$("err");el.hidden=false;el.textContent="Could not load data.json: "+e.message;window.__qcicError=String(e);
+});
+
+function init(d){
+  D=d;O=d.officers;M=d.metrics;M.forEach(function(m,i){MI[m]=i});
+  var tn=0;
+  O.forEach(function(o){
+    byId.set(o.id,o);
+    if(o.badge!=null)byBadge.set(String(o.badge),o);
+    o._ln=lastName(o.name).toUpperCase();o._nn=normName(o.name).toUpperCase();
+  });
+  prep();
+  $("vintage").innerHTML=vintageLine();
+  headline();
+  buildFilters();
+  renderStrips();renderTable();renderMap();renderNotes();
+  bindLookup();
+  window.addEventListener("hashchange",onHash);
+  var rt;window.addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(function(){renderStrips();renderMap();if(cur)drawMini()},120)});
+  onHash();
+  window.__qcicMs=performance.now()-T0;
+  window.__qcicReady=true;
+}
+
+/* per-metric arrays */
+var ALL={}, SW={}, PEERV={};
+function prep(){
+  M.forEach(function(m){
+    var a=[],s=[];
+    O.forEach(function(o){var v=o[m];if(scored(o,m)){a.push(v);if(o.sworn)s.push(v)}});
+    a.sort(function(x,y){return x-y});s.sort(function(x,y){return x-y});
+    ALL[m]=a;SW[m]=s;
+  });
+}
+function q(arr,p){if(!arr.length)return null;var i=Math.min(arr.length-1,Math.max(0,Math.round(p/100*(arr.length-1))));return arr[i]}
+function peerVals(peer,m){
+  var k=peer+"\u0001"+m;
+  if(!PEERV[k]){var a=[];O.forEach(function(o){if(o.peer===peer&&scored(o,m))a.push(o[m])});a.sort(function(x,y){return x-y});PEERV[k]=a}
+  return PEERV[k];
+}
+
+/* ---------- header / headline ---------- */
+function vintageLine(){
+  var v=D.meta.vintage;
+  return "Data vintage &mdash; payroll "+esc(v.payroll)+" &middot; complaints "+esc(v.complaints)+" &middot; units "+esc(v.units)+" &middot; lawsuits "+esc(v.lawsuits)+" &middot; COPA/BIA "+esc(v.copa_bia)+". Generated "+esc(D.meta.generated.slice(0,10))+".";
+}
+function headline(){
+  var c=D.meta.counts,fx=D.meta.thresholds.fixed,z=D.meta.thresholds.z_flag;
+  var either=O.filter(isFlagged).length;
+  var lawN=O.filter(function(o){return o.law!=null}).length;
+  var s=n0(c.employees)+" CPD payroll members ("+n0(c.sworn)+" sworn; "+n0(c.matched)+" matched to CPDP complaint records) were paid "+usdC(c.pay_total||0)+" in "+D.meta.payroll_year+", including "+usdC(c.ot_total||0)+" core overtime, "+usdC(c.det_total||0)+" outside-agency details and "+usdC(c.bb_total||0)+" comp-time buybacks. "+n0(c.part_year||0)+" part-year members are not scored on pay. ";
+  s+="<b>"+n0(either)+"</b> are flagged for review: <b>"+n0(c.flagged_stat)+"</b> as statistical outliers within their title peer group (robust z &ge; "+z+") and <b>"+n0(c.flagged_fixed)+"</b> by fixed limits ("+usd(fx.total_pay)+" total pay, "+usd(fx.overtime_pay)+" overtime, "+fx.complaints_window+" complaints in "+D.meta.thresholds.complaint_window_years+" years, "+fx.sustained_total+" sustained findings (allegations), "+usd(fx.lawsuit_total)+" lawsuit payouts); some meet both tests.";
+  if(c.dol_officers_linked!=null)s+=" <b>"+n0(c.dol_officers_linked)+"</b> current members are named in <b>"+n0(c.dol_cases_linked)+"</b> paid cases, 2022\u20132025 (City Department of Law reports; 2020\u20132021 not yet covered; CPDP adds cases to ~2019).";
+  $("headline").innerHTML=s;
+}
+
+/* ---------- strips ---------- */
+function axisLabels(items){
+  /* items: {x,txt,cap,anchor,pri}; greedy by priority */
+  var acc=[],out=[];
+  items.slice().sort(function(a,b){return a.pri-b.pri}).forEach(function(it){
+    var w=it.txt.length*6.6+6,l=it.anchor==="start"?it.x:it.anchor==="end"?it.x-w:it.x-w/2,r=l+w;
+    var ok=acc.every(function(a){return r<a[0]||l>a[1]});
+    if(ok){acc.push([l,r]);out.push(it)}
+  });
+  return out;
+}
+function stripSVG(o){
+  /* o: {m,W,vals(sorted),H,top,bot,peerMarks[],dots[],med,p99,mini,me} */
+  var m=o.m,W=o.W,L=o.mini?6:12,R=o.mini?6:18,w=W-L-R,vals=o.vals;
+  if(!vals.length)return '<svg width="'+W+'" height="26" viewBox="0 0 '+W+' 26"><text x="'+L+'" y="16">No data loaded for this measure.</text></svg>';
+  var t0=tx(m,vals[0]),t1=tx(m,vals[vals.length-1]);if(t1<=t0)t1=t0+1;
+  var X=function(v){return L+(tx(m,v)-t0)/(t1-t0)*w};
+  var d="",y0=o.top,y1=o.top+o.th;
+  for(var i=0;i<vals.length;i++){d+="M"+(Math.round(X(vals[i])*2)/2)+" "+y0+"V"+y1}
+  var s='<svg width="'+W+'" height="'+o.H+'" viewBox="0 0 '+W+' '+o.H+'" role="img" aria-label="'+esc(o.aria||"")+'">';
+  s+='<path class="tk" d="'+d+'"/>';
+  var pm="";
+  (o.peerMarks||[]).forEach(function(v){var x=Math.round(X(v)*2)/2;pm+="M"+x+" "+(y1+4)+"v7"});
+  if(pm)s+='<path class="pm" d="'+pm+'"/>';
+  if(o.dots){
+    var cf="",cr="";
+    o.dots.forEach(function(p,i){
+      var x=X(p.v),y=y0+5+((i*37)%100)/100*(o.th-10);
+      var c='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2.8" class="'+(p.s?"dotf":"dotr")+'"/>';
+      cr+=c;
+    });
+    s+=cr;
+  }
+  if(o.me!=null){s+='<circle class="me" cx="'+X(o.me).toFixed(1)+'" cy="'+(y0+o.th/2)+'" r="5"/>'}
+  var ay=y1+(o.peerMarks?16:8);
+  if(o.axis===false){
+    /* compact ticks under strip: median/p90/p99 */
+    var mk="";(o.marks||[]).forEach(function(v){var x=Math.round(X(v)*2)/2;mk+="M"+x+" "+(y1+3)+"v6"});
+    s+='<path class="pm" d="'+mk+'"/>';
+    s+='</svg>';return s;
+  }
+  var mn=vals[0],mx=vals[vals.length-1];
+  s+='<path class="ax" d="M'+X(mn)+' '+ay+'H'+X(mx)+'"/>';
+  var ticks=[{v:mn,cap:"min",anchor:"start",pri:0},{v:mx,cap:"max",anchor:"end",pri:1},{v:o.med,cap:"median",anchor:"middle",pri:2},{v:o.p99,cap:"p99",anchor:"middle",pri:3}];
+  var tp="",items=[];
+  ticks.forEach(function(t){
+    if(t.v==null)return;
+    var x=X(t.v);tp+="M"+x.toFixed(1)+" "+ay+"v5";
+    items.push({x:x,txt:fmtC(m,t.v),cap:t.cap,anchor:t.anchor,pri:t.pri,w:Math.max(t.cap.length,fmtC(m,t.v).length)});
+  });
+  s+='<path class="ax" d="'+tp+'"/>';
+  /* label collisions on the wider of value/caption */
+  items.forEach(function(it){it.txt2=it.txt;it.txt=(it.w>it.txt.length?new Array(it.w+1).join("x"):it.txt)});
+  var okl=axisLabels(items),skipped=items.filter(function(it){return okl.indexOf(it)<0}),extra=0;
+  if(skipped.length){
+    var rows=[[],[]];
+    skipped.sort(function(a,b){return a.pri-b.pri}).forEach(function(it){
+      var tt=it.cap+" "+it.txt2,w=tt.length*6.6+6,l=it.x-w/2,r=l+w;
+      if(l<0){l=0;r=w}if(r>W){r=W;l=W-w}
+      for(var k=0;k<rows.length;k++){
+        if(rows[k].every(function(a){return r<a[0]||l>a[1]})){rows[k].push([l,r]);s+='<text class="lab" x="'+((l+r)/2).toFixed(1)+'" y="'+(ay+45+14*k)+'" text-anchor="middle">'+esc(tt)+'</text>';extra=Math.max(extra,14*(k+1));break}
+      }
+    });
+  }
+  okl.forEach(function(it){
+    s+='<text class="lab" x="'+it.x.toFixed(1)+'" y="'+(ay+18)+'" text-anchor="'+it.anchor+'">'+esc(it.txt2)+'</text>';
+    s+='<text x="'+it.x.toFixed(1)+'" y="'+(ay+31)+'" text-anchor="'+it.anchor+'">'+it.cap+'</text>';
+  });
+  return s.replace('height="'+o.H+'" viewBox="0 0 '+W+' '+o.H+'"','height="'+(o.H+extra)+'" viewBox="0 0 '+W+' '+(o.H+extra)+'"')+'</svg>';
+}
+function renderStrips(){
+  var host=$("strips"),W=Math.max(260,Math.floor(host.clientWidth||host.parentNode.clientWidth)),html="";
+  var minPeer=D.meta.thresholds.min_peer_group||30;
+  M.forEach(function(m,i){
+    var vals=ALL[m],lab=D.metric_labels[m];
+    var dots=[],ns=0,nf=0;
+    O.forEach(function(o){var s=hasS(o,m),f=hasF(o,m);if((s||f)&&scored(o,m)){dots.push({v:o[m],s:s});if(s)ns++;if(f&&!s)nf++}});
+    var pmk=[];Object.keys(D.peers).forEach(function(g){var p=D.peers[g];if(p.n>=minPeer&&p.median[i]!=null)pmk.push(p.median[i])});
+    var scale=LOGM[m]?" &middot; log scale, log<sub>10</sub>(1&nbsp;+&nbsp;$)":" &middot; linear scale";
+    html+='<div class="strip"><div class="sh"><span><b>'+esc(lab)+'</b> <span class="grey">'+(vals.length?n0(vals.length)+(m==='total'||m==='ot'?' full-year members':' members'):'no data loaded yet')+' &middot; '+esc(D.meta.vintage[VINT[m]])+scale+'</span></span><span><span class="mark-s">&#9679;</span> '+n0(ns)+' statistical &nbsp;<span class="mark-f">&#9675;</span> '+n0(nf)+' fixed only</span></div>';
+    if(m==='law')html+='<div class="small grey">Paid by the City; full case payout counted for every named officer. '+esc(D.meta.vintage.lawsuits)+'.</div>';
+    html+=stripSVG({m:m,W:W,vals:vals,H:112,top:6,th:44,peerMarks:pmk,dots:dots,med:q(vals,50),p99:q(vals,99),aria:lab+" strip plot"});
+    html+='</div>';
+  });
+  host.innerHTML=html;
+}
+
+/* ---------- table ---------- */
+var COLS=[];
+function buildCols(){
+  COLS=[
+    {k:"name",l:"Name",s:function(o){return o.name},t:"s"},
+    {k:"title",l:"Title",s:function(o){return o.title},t:"s"},
+    {k:"dist",l:"Dist.",s:function(o){return o.dist==null?null:+o.dist},t:"n"}
+  ];
+  M.forEach(function(m,i){
+    var v=D.meta.vintage[VINT[m]];
+    COLS.push({k:"v"+m,l:m==="law"?D.metric_labels[m].split(" (")[0]:D.metric_labels[m],v:v,s:function(o){return o[m]},t:"n",m:m});
+    COLS.push({k:"p"+m,l:"Pctile",v:"",s:function(o){return o.pct[i]},t:"n",pc:i});
+  });
+  COLS.push({k:"flags",l:"Flags",s:function(o){return o.fs.length*1000+o.ff.length},t:"n",fl:1});
+}
+function buildFilters(){
+  buildCols();
+  var fm=$("f-metric"),h='<option value="">any</option>';
+  M.forEach(function(m){h+='<option value="'+m+'">'+esc(D.metric_labels[m])+'</option>'});
+  h+='<option value="otr">Overtime / base ratio</option><option value="sus">Sustained finding (allegation)</option>';
+  fm.innerHTML=h;
+  var fd='<option value="">all</option><option value="-">no district</option>';
+  D.districts.slice().sort(function(a,b){return a.num-b.num}).forEach(function(d){fd+='<option value="'+esc(d.num)+'">'+esc(d.label)+'</option>'});
+  $("f-dist").innerHTML=fd;
+  var tt={};O.forEach(function(o){if(isFlagged(o))tt[o.title]=(tt[o.title]||0)+1});
+  var ft='<option value="">all</option>';
+  Object.keys(tt).sort(function(a,b){return tt[b]-tt[a]}).forEach(function(t){ft+='<option value="'+esc(t)+'">'+esc(t)+' ('+tt[t]+')</option>'});
+  $("f-title").innerHTML=ft;
+  fm.onchange=function(){st.fm=fm.value;renderTable()};
+  $("f-type").onchange=function(e){st.ft=e.target.value;renderTable()};
+  $("f-dist").onchange=function(e){st.fd=e.target.value;renderTable()};
+  $("f-title").onchange=function(e){st.ftitle=e.target.value;renderTable()};
+  $("f-reset").onclick=function(){st.fm=st.ft=st.fd=st.ftitle="";["f-metric","f-type","f-dist","f-title"].forEach(function(i){$(i).value=""});renderTable()};
+}
+function rowMatches(o){
+  if(!isFlagged(o))return false;
+  var s,f;
+  if(st.fm){s=hasS(o,st.fm);f=hasF(o,st.fm)}else{s=o.fs.length>0;f=o.ff.length>0}
+  if(!s&&!f)return false;
+  if(st.ft==="s"&&!s)return false;
+  if(st.ft==="f"&&!f)return false;
+  if(st.ft==="b"&&!(s&&f))return false;
+  if(st.fd){if(st.fd==="-"){if(o.dist!=null)return false}else if(o.dist!==st.fd)return false}
+  if(st.ftitle&&o.title!==st.ftitle)return false;
+  return true;
+}
+function marks(o,m){
+  var r="";
+  if(hasS(o,m))r+='<span class="mark-s" title="statistical outlier for review (within title peer group)">&#9679;</span>';
+  if(hasF(o,m))r+='<span class="mark-f" title="exceeds a fixed limit: outlier for review">&#9675;</span>';
+  return r;
+}
+function renderTable(){
+  var rows=O.filter(rowMatches),col=COLS.filter(function(c){return c.k===st.sortKey})[0]||COLS[COLS.length-1];
+  rows.sort(function(a,b){
+    var x=col.s(a),y=col.s(b);
+    if(x==null&&y==null)return b.total-a.total;
+    if(x==null)return 1;if(y==null)return -1;
+    var c=col.t==="s"?String(x).localeCompare(String(y)):x-y;
+    if(c===0)return b.total-a.total;
+    return c*st.sortDir;
+  });
+  var shown=rows.slice(0,200);
+  var h="<thead><tr>";
+  COLS.forEach(function(c){
+    var cls=c.t==="n"?' class="n"':"",ar=c.k===st.sortKey?(st.sortDir>0?" ↑":" ↓"):"";
+    h+='<th'+cls+' aria-sort="'+(c.k===st.sortKey?(st.sortDir>0?"ascending":"descending"):"none")+'"><button data-k="'+c.k+'">'+esc(c.l)+ar+'</button>'+(c.v!=null?'<span class="v">'+esc(c.v)+'</span>':"")+'</th>';
+  });
+  h+="</tr></thead><tbody>";
+  shown.forEach(function(o){
+    h+='<tr class="click" tabindex="0" data-id="'+esc(o.id)+'">';
+    h+='<td>'+esc(normName(o.name))+'</td><td>'+esc(o.title)+'</td><td class="n">'+(o.dist==null?nd(o):esc(o.dist))+'</td>';
+    M.forEach(function(m,i){
+      var v=o[m];
+      h+='<td class="n">'+marks(o,m)+' '+(v==null?nd(o):fmtM(m,v))+'</td><td class="n">'+(o.pct[i]==null?nd(o,m):pct1(o.pct[i]))+'</td>';
+    });
+    h+='<td class="n"><span class="mark-s">&#9679;</span>'+o.fs.length+' <span class="mark-f">&#9675;</span>'+o.ff.length+'</td></tr>';
+  });
+  if(!shown.length)h+='<tr><td colspan="'+COLS.length+'" class="grey">No members match these filters.</td></tr>';
+  h+="</tbody>";
+  $("ftable").innerHTML=h;
+  $("tcount").textContent="showing "+n0(shown.length)+" of "+n0(rows.length)+(rows.length>200?" (cap 200; narrow the filters or sort a column)":"")+" flagged members";
+}
+$("ftable").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-k]");
+  if(b){var k=b.getAttribute("data-k");if(st.sortKey===k)st.sortDir=-st.sortDir;else{st.sortKey=k;st.sortDir=(k==="name"||k==="title"||k==="dist")?1:-1}renderTable();return}
+  var tr=e.target.closest("tr[data-id]");if(tr)select(tr.getAttribute("data-id"));
+});
+$("ftable").addEventListener("keydown",function(e){
+  if(e.key==="Enter"||e.key===" "){var tr=e.target.closest&&e.target.closest("tr[data-id]");if(tr&&e.target===tr){e.preventDefault();select(tr.getAttribute("data-id"))}}
+});
+
+/* ---------- map + district table ---------- */
+function spark(arr,w,h){
+  if(!arr||!arr.length)return DASH;
+  var xs=arr.map(function(p){return p[0]}),ys=arr.map(function(p){return p[1]});
+  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),y0=Math.min.apply(null,ys),y1=Math.max.apply(null,ys);
+  if(x1===x0)x1=x0+1;if(y1===y0)y1=y0+1;
+  var pts=arr.map(function(p){return ((p[0]-x0)/(x1-x0)*(w-6)+3).toFixed(1)+","+(h-3-(p[1]-y0)/(y1-y0)*(h-6)).toFixed(1)});
+  var last=pts[pts.length-1].split(",");
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" style="display:inline-block;vertical-align:middle"><title>'+x0+DASH+x1+': '+arr.map(function(p){return p[0]+" "+p[1]}).join(", ")+'</title><polyline class="sp" points="'+pts.join(" ")+'"/><circle class="spd" cx="'+last[0]+'" cy="'+last[1]+'" r="2.2"/></svg>';
+}
+function renderMap(){
+  var host=$("map"),W=Math.min(420,Math.max(240,Math.floor(host.clientWidth||host.parentNode.clientWidth||320))),sc=W/600;
+  var ds=D.districts,mr=0;
+  ds.forEach(function(d){d._r=d.members?d.flagged/d.members:0;if(d._r>mr)mr=d._r});
+  var s='<svg width="'+W+'" height="'+Math.round(800*sc)+'" viewBox="0 0 600 800" role="img" aria-label="District map shaded by share of members flagged">';
+  ds.forEach(function(d){
+    var op=mr?0.06+0.8*d._r/mr:0.06;
+    s+='<path class="dist" data-d="'+esc(d.num)+'" d="'+d.path+'" style="fill:var(--ink)" fill-opacity="'+op.toFixed(3)+'"><title>'+esc(d.label)+' district: '+(d.members?d.flagged+' of '+d.members+' flagged':'no members')+'</title></path>';
+  });
+  var fs=(13/sc).toFixed(1);
+  ds.forEach(function(d){if(d.members)s+='<text class="dl" x="'+d.lx+'" y="'+d.ly+'" style="font-size:'+fs+'px;stroke-width:'+(3/sc).toFixed(1)+'px">'+d.flagged+'</text>'});
+  host.innerHTML=s+'</svg>';
+  host.querySelectorAll("path[data-d]").forEach(function(p){p.addEventListener("click",function(){
+    var n=p.getAttribute("data-d");st.fd=n;$("f-dist").value=n;renderTable();$("ftable").scrollIntoView({block:"nearest"});
+  })});
+  var h='<thead><tr><th>District</th><th class="n">Members</th><th class="n">Flagged</th><th class="n">Share</th><th>COPA complaints by year<span class="v">'+esc(D.meta.vintage.copa_bia)+'</span></th><th>BIA by year<span class="v">'+esc(D.meta.vintage.copa_bia)+'</span></th></tr></thead><tbody>';
+  ds.slice().sort(function(a,b){return a.num-b.num}).forEach(function(d){
+    var lc=d.copa&&d.copa.length?d.copa[d.copa.length-1]:null,lb=d.bia&&d.bia.length?d.bia[d.bia.length-1]:null;
+    h+='<tr><td>'+esc(d.label)+'</td><td class="n">'+(d.members?n0(d.members):'\u2014')+'</td><td class="n">'+(d.members?n0(d.flagged):'\u2014')+'</td><td class="n">'+(d.members?(100*d.flagged/d.members).toFixed(1)+"%":"\u2014")+'</td><td>'+spark(d.copa,84,20)+' <span class="grey">'+(lc?lc[1]+" ("+lc[0]+")":"")+'</span></td><td>'+spark(d.bia,84,20)+' <span class="grey">'+(lb?lb[1]+" ("+lb[0]+")":"")+'</span></td></tr>';
+  });
+  $("dtable").innerHTML=h+'</tbody>';
+}
+
+/* ---------- notes ---------- */
+function renderNotes(){
+  var t=D.meta.thresholds,fx=t.fixed;
+  var m='';
+  m+='<li><b>Statistical flag.</b> Robust z-score within the member&rsquo;s title peer group (peer = job title with at least '+(t.min_peer_group||30)+' members, else all sworn / all civilian): (t(x) &minus; median) / (MAD / 0.6745), where t = log(1 + x) for '+(t.log_metrics||[]).map(function(k){return esc(D.metric_labels[k].split(' (')[0]).toLowerCase()}).join(', ')+' and identity otherwise. Flagged as an outlier for review when z &ge; '+t.z_flag+', high side only. Total and overtime pay are scored only for full-year members (base pay at least '+((t.full_year_base_share||0)*100).toFixed(0)+'% of the title median); '+n0(D.meta.counts.part_year||0)+' part-year members are not scored on pay. Percentile = share of the peer group at or below the value.</li>';
+  m+='<li><b>Fixed limits.</b> '+Object.keys(FIXKEY).map(function(k){var v=fx[FIXKEY[k]];return FIXLAB[k]+" &ge; "+(k==="otr"?(v*100).toFixed(0)+"%":(k==="cmp"||k==="sus")?v:usd(v))}).join("; ")+'. Set in config/qcic.toml.</li>';
+  m+='<li><b>Complaints</b> are distinct complaint records in the last '+t.complaint_window_years+' years of CPDP data ('+esc(D.meta.vintage.complaints)+'); career totals and sustained findings are shown in the drill-down. A complaint is an allegation.</li>';
+  m+='<li><b>Matching.</b> Payroll members are matched to CPDP profiles by name only when unambiguous; unmatched members show an en dash (&ndash;) for CPDP-derived fields. Newer hires are unmatched by design.</li>';
+  m+='<li><b>Lawsuit payouts</b> are career settlements and judgments recorded by CPDP ('+esc(D.meta.vintage.lawsuits)+'), paid by the City, usually without admission of liability. The full case payout is counted for every named officer. 2020\u20132021 are not yet covered.</li>';
+  m+='<li><b>Overtime</b> means core overtime only. Outside-agency details and comp-time buybacks are shown separately and are included in total pay.</li><li><b>Scales.</b> Money strips use a labelled log scale, log<sub>10</sub>(1 + $); axis labels show real values. Complaint counts are linear. No axis is truncated.</li>';
+  m+='<li><b>Districts.</b> COPA and BIA counts are district-level City feeds without officer names; they give context, not attribution.</li>';
+  $("method").innerHTML=m;
+  $("sources").innerHTML=D.meta.sources.map(function(s){return '<li><a href="'+esc(s.url)+'" rel="noopener">'+esc(s.name)+'</a>. '+esc(s.note)+'</li>'}).join("");
+}
+
+/* ---------- lookup ---------- */
+function search(qs){
+  qs=qs.trim().toUpperCase().replace(/\s+/g," ");
+  if(!qs)return [];
+  var res=[],seen=new Set();
+  var b=byBadge.get(qs.replace(/^#/,""));
+  if(b){res.push(b);seen.add(b.id)}
+  var byLast=qs.indexOf(",")<0;
+  for(var i=0;i<O.length;i++){
+    var o=O[i];
+    if(seen.has(o.id))continue;
+    if(byLast?o._ln.indexOf(qs)===0:o._nn.indexOf(qs)===0){res.push(o);seen.add(o.id)}
+  }
+  return res;
+}
+function bindLookup(){
+  var inp=$("q"),to;
+  function run(){
+    var qs=inp.value,res=search(qs),host=$("results");
+    if(!qs.trim()){host.innerHTML="";$("nres").textContent="Searches all members, flagged or not. Last-name prefix, or exact badge number.";return}
+    res.sort(function(a,b){return (b.sworn-a.sworn)||a._nn.localeCompare(b._nn)});
+    var shown=res.slice(0,40);
+    $("nres").textContent=res.length?("showing "+shown.length+" of "+res.length+" matches"):"No match. Try the start of the last name, or an exact badge number.";
+    host.innerHTML=shown.map(function(o){
+      return '<button class="row" role="listitem" data-id="'+esc(o.id)+'"><span>'+esc(normName(o.name))+(isFlagged(o)?' <span class="mark-s" title="flagged">&#9679;</span>':'')+'</span><span class="grey">'+esc(o.title)+'</span><span>'+(o.badge==null?nd(o):'#'+esc(o.badge))+'</span><span class="grey">'+(o.unit_desc?esc(o.unit_desc):nd(o))+'</span></button>';
+    }).join("");
+  }
+  inp.addEventListener("input",function(){clearTimeout(to);to=setTimeout(run,60)});
+  inp.addEventListener("keydown",function(e){if(e.key==="Enter"){clearTimeout(to);run();var f=$("results").querySelector("button");if(f)select(f.getAttribute("data-id"))}});
+  $("results").addEventListener("click",function(e){var b=e.target.closest("button[data-id]");if(b)select(b.getAttribute("data-id"))});
+  window.__qcicSearch=search;
+}
+
+/* ---------- drill-down ---------- */
+var cur=null;
+function select(id){
+  var o=byId.get(id);if(!o)return;
+  var h="#id="+encodeURIComponent(id);
+  if(location.hash===h)openOfficer(o,true);else location.hash=h;
+}
+function onHash(){
+  var h=location.hash.replace(/^#/,""),o=null;
+  var mm=/^id=(.+)$/.exec(h);
+  if(mm)o=byId.get(decodeURIComponent(mm[1]));
+  else if((mm=/^badge=(.+)$/.exec(h)))o=byBadge.get(decodeURIComponent(mm[1]).trim());
+  if(o)openOfficer(o,true);
+  else if(h){$("drill").hidden=false;$("drill").innerHTML='<p class="grey">No member found for #'+esc(h)+'.</p>';cur=null}
+  else{$("drill").hidden=true;cur=null}
+}
+function closeDrill(){history.replaceState(null,"",location.pathname+location.search);$("drill").hidden=true;cur=null}
+function openOfficer(o,scroll){
+  cur=o;
+  var dr=$("drill");dr.hidden=false;
+  var ps=D.peers[o.peer],t=D.meta.thresholds.fixed;
+  var h='<div class="dhead"><div><h2 id="dname">'+esc(normName(o.name))+'</h2><p class="grey" style="margin:0">'+esc(o.title)+' &middot; badge '+(o.badge==null?nd(o):'#'+esc(o.badge))+' &middot; '+(o.unit_desc?esc(o.unit_desc):nd(o))+' &middot; peer group: '+esc(o.peer)+(ps?' (n&nbsp;'+n0(ps.n)+')':'')+'</p></div><button class="close" id="dclose">Close</button></div>';
+  M.forEach(function(m,i){
+    var v=o[m],a=SW[m],rank=null,flags="",py=(o.fy===false&&(m==='total'||m==='ot')),PY='<span class="grey" title="part-year pay">part-year pay \u2013 not scored on pay</span>';
+    if(scored(o,m)&&o.sworn){var gt=0;for(var k=a.length-1;k>=0&&a[k]>v;k--)gt++;rank=gt+1}
+    if(hasS(o,m))flags+='<span class="mark-s">&#9679;</span> statistical outlier for review ';
+    if(hasF(o,m))flags+='<span class="mark-f">&#9675;</span> exceeds fixed limit ('+fmtM(m,t[FIXKEY[m]])+'): outlier for review';
+    h+='<div class="dm"><div><h3>'+esc(D.metric_labels[m])+'</h3><div class="val">'+(v==null?nd(o):fmtM(m,v))+'</div><p class="st grey">'+esc(D.meta.vintage[VINT[m]])+'</p><p class="st">'+flags+'</p></div>';
+    h+='<div>'+(py?'<p class="st">'+PY+'</p>':'<p class="st"><span>percentile</span>'+(o.pct[i]==null?nd(o):pct1(o.pct[i]))+'</p><p class="st"><span>robust z</span>'+(o.z[i]==null?nd(o):o.z[i].toFixed(2))+'</p><p class="st"><span>rank</span>'+(rank==null?nd(o):n0(rank)+' of '+n0(a.length)+' sworn'+(m==='total'||m==='ot'?' full-year':''))+'</p>');
+    h+='<p class="st"><span>peer median</span>'+(ps?fmtM(m,ps.median[i]):DASH)+'</p><p class="st"><span>peer p90</span>'+(ps?fmtM(m,ps.p90[i]):DASH)+'</p><p class="st"><span>peer p99</span>'+(ps?fmtM(m,ps.p99[i]):DASH)+'</p></div>';
+    h+='<div class="mini" data-m="'+m+'"></div></div>';
+  });
+  var oth='';
+  ['otr','sus'].forEach(function(k){if(hasF(o,k))oth+='<span class="mark-f">&#9675;</span> '+FIXLAB[k]+' exceeds fixed limit ('+(k==="otr"?(t.overtime_ratio*100).toFixed(0)+"%":t.sustained_total)+'). '});
+  if(oth)h+='<p class="st" style="margin:.5rem 0">'+oth+'</p>';
+  h+='<div class="dgrid"><div><h3>Payroll '+D.meta.payroll_year+'</h3><dl>'+
+     '<div><dt>Base</dt><dd>'+usd(o.base)+'</dd></div><div><dt>Overtime (core)</dt><dd>'+usd(o.ot)+'</dd></div><div><dt>Outside-agency details</dt><dd>'+usd(o.det)+'</dd></div><div><dt>Comp-time buybacks</dt><dd>'+usd(o.bb)+'</dd></div><div><dt>Other pay</dt><dd>'+usd(o.other)+'</dd></div><div><dt>Total</dt><dd>'+usd(o.total)+'</dd></div><div><dt>Overtime / base</dt><dd>'+(o.otr==null?DASH:(o.otr*100).toFixed(1)+'%')+'</dd></div></dl><p class="small grey" style="margin:.3rem 0">The overtime measure counts core overtime only; details and buybacks are shown here and are in total pay.'+(o.fy===false?' Part-year pay: not scored on pay.':'')+(o.multi_title?' Held more than one title in '+D.meta.payroll_year+'.':'')+'</p></div>'+
+     '<div><h3>Conduct and litigation</h3><dl>'+
+     '<div><dt>Complaints, '+D.meta.thresholds.complaint_window_years+' yr window</dt><dd>'+(o.cmp==null?nd(o):n0(o.cmp))+'</dd></div><div><dt>Complaints, career</dt><dd>'+(o.cmp_all==null?nd(o):n0(o.cmp_all))+'</dd></div><div><dt>Sustained findings (allegations), career</dt><dd>'+(o.sus==null?nd(o):n0(o.sus))+'</dd></div><div><dt>Lawsuit payouts, total</dt><dd>'+(o.law==null?nd(o):usd(o.law))+'</dd></div><div><dt>CPDP, cases ~2011\u20132019</dt><dd>'+(o.law_cpdp==null?nd(o):usd(o.law_cpdp))+'</dd></div><div><dt>City DOL reports, 2022\u20132025</dt><dd>'+(o.law_dol==null?nd(o):usd(o.law_dol))+(o.law_n?' <span class="grey">('+o.law_n+' case'+(o.law_n>1?'s':'')+')</span>':'')+'</dd></div></dl></div>'+
+     '<div><h3>Assignment and record</h3><dl>'+
+     '<div><dt>Unit'+(o.unit_asof?' (as of '+esc(o.unit_asof)+')':'')+'</dt><dd>'+(o.unit==null?nd(o):esc(o.unit)+(o.unit_desc?' &middot; '+esc(o.unit_desc):''))+'</dd></div><div><dt>District</dt><dd>'+(o.dist==null?nd(o):esc(o.dist))+'</dd></div><div><dt>Badge</dt><dd>'+(o.badge==null?nd(o):esc(o.badge))+'</dd></div><div><dt>Sworn</dt><dd>'+(o.sworn?"yes":"no")+'</dd></div><div><dt>On current City roster</dt><dd>'+(o.roster?"yes":"no")+'</dd></div><div><dt>CPDP profile</dt><dd>'+(o.cpdp==null?nd(o):'<a href="https://cpdp.co/officer/'+encodeURIComponent(o.cpdp)+'/" rel="noopener">cpdp.co/officer/'+esc(o.cpdp)+'</a><br><span class="grey small">matched to CPDP by '+(o.mp===3?'full name + middle initial':o.mp===2?'first + last name':'name')+'</span>')+'</dd></div></dl></div></div>';
+  h+=lawBlock(o);
+  h+='<p class="small grey" style="margin-top:.8rem">Strips: faint ticks are the peer group (same title), the black dot is this member, short black ticks below are the peer median, p90 and p99. Flagged for review means a statistical outlier, not a finding of wrongdoing.</p>';
+  dr.innerHTML=h;
+  $("dclose").onclick=closeDrill;
+  drawMini();
+  if(scroll)dr.scrollIntoView({block:"start"});
+}
+function lawBlock(o){
+  var cs=o.law_cases||[];
+  var h='<div style="margin-top:1rem"><h3>Lawsuit payouts</h3><p class="small grey" style="margin:.2rem 0">Paid by the City; the full case payout is counted for every named officer, usually without admission of liability. CPDP covers cases ~2011\u20132019, City Department of Law reports cover 2022\u20132025; <b>2020\u20132021 not yet covered</b>. '+esc(D.meta.vintage.lawsuits)+'.</p>';
+  if(!cs.length){return h+'<p class="small grey" style="margin:.2rem 0">No linked 2022\u20132025 cases'+(o.law_cpdp?'; the CPDP total above is a career figure without case detail':'')+'.</p></div>'}
+  h+='<div class="scroll"><table style="width:auto;min-width:min(100%,520px)"><thead><tr><th>Year</th><th>Case no.</th><th>Category</th><th class="n">Payout</th></tr></thead><tbody>';
+  cs.forEach(function(c){
+    h+='<tr><td>'+esc(c.year)+'</td><td>'+(c.url?'<a href="'+esc(c.url)+'" rel="noopener">'+esc(c.case_no)+'</a>':esc(c.case_no))+'</td><td>'+(c.category?esc(c.category):DASH)+(c.kind?' <span class="grey">('+esc(c.kind)+')</span>':'')+'</td><td class="n">'+usd(c.payout)+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  if(o.law_n>cs.length)h+='<p class="small grey" style="margin:.2rem 0">Top '+cs.length+' of '+o.law_n+' linked cases by payout.</p>';
+  return h+'</div>';
+}
+function drawMini(){
+  if(!cur)return;
+  var o=cur,ps=D.peers[o.peer];
+  document.querySelectorAll("#drill .mini").forEach(function(el){
+    var m=el.getAttribute("data-m"),i=MI[m];
+    var W=Math.max(200,Math.floor(el.clientWidth||260));
+    var vals=peerVals(o.peer,m);
+    var marks=ps?[ps.median[i],ps.p90[i],ps.p99[i]].filter(function(x){return x!=null}):[];
+    el.innerHTML=stripSVG({m:m,W:W,vals:vals,H:64,top:6,th:34,axis:false,marks:marks,me:(scored(o,m)?o[m]:null),aria:D.metric_labels[m]+" peer group strip plot"})+'<p class="st grey" style="margin:.1rem 0 0">peer group: '+n0(vals.length)+' with data &middot; '+fmtC(m,vals[0])+' to '+fmtC(m,vals[vals.length-1])+(LOGM[m]?' (log scale)':'')+'</p>';
+  });
+}
+})();
+</script>
+</body>
+</html>
